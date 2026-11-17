@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { $ } from "bun";
 import { parseArgs } from "node:util";
-import { HchError } from "./hc.ts";
+import { hcErrorMessage, HchError } from "./hc.ts";
 import { up } from "./commands/up.ts";
 import { version } from "./commands/version.ts";
 import { where } from "./commands/where.ts";
@@ -19,12 +19,19 @@ Commands
 const commands: Record<string, () => Promise<void>> = { where, version, up };
 
 async function main(argv: string[]): Promise<number> {
-  const { positionals, values } = parseArgs({
+  const options = { help: { type: "boolean", short: "h" } } as const;
+  const { positionals, values, tokens } = parseArgs({
     args: argv,
-    options: { help: { type: "boolean", short: "h" } },
+    options,
     allowPositionals: true,
     strict: false,
+    tokens: true,
   });
+  const unknown = tokens.find((t) => t.kind === "option" && !(t.name in options));
+  if (unknown?.kind === "option") {
+    console.error(`hch: unknown option '${unknown.rawName}'\n\n${USAGE}`);
+    return 2;
+  }
   const [name] = positionals;
   if (!name || name === "help" || values.help) {
     console.log(USAGE);
@@ -46,7 +53,7 @@ try {
     console.error(`hch: ${err.message}`);
     process.exitCode = err.exitCode;
   } else if (err instanceof $.ShellError) {
-    console.error(`hch: ${err.stderr.toString().trim() || err.message}`);
+    console.error(`hch: ${hcErrorMessage(err.stderr.toString()) || err.message}`);
     process.exitCode = err.exitCode;
   } else {
     throw err;
