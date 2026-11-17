@@ -86,6 +86,8 @@ async function main(argv: string[]): Promise<number> {
   const command = Object.hasOwn(commands, name) ? commands[name] : undefined;
   if (!command) return usageError(`unknown command '${name}'`);
   if (!command.formats.includes(format)) return usageError(`${name} doesn't support --${format}`);
+  const allowed = command.args ? 1 : 0;
+  if (name !== 'help' && args.length > allowed) return usageError(`unexpected argument '${args[allowed]}'`);
   await command.run(format, args);
   return 0;
 }

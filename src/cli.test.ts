@@ -177,3 +177,28 @@ test('completion rejects format flags', () => {
 test('usage lists the completion command', () => {
   expect(hch(['help']).stdout).toContain('  completion  print a shell completion script (zsh)');
 });
+
+test.skipIf(!Bun.which('zsh'))('completion zsh output is a script zsh accepts', () => {
+  const script = hch(['completion', 'zsh']).stdout;
+  const p = Bun.spawnSync(['zsh', '-n'], { stdin: new TextEncoder().encode(script) });
+  expect(p.stderr.toString()).toBe('');
+  expect(p.exitCode).toBe(0);
+});
+
+test('a command rejects unexpected arguments', () => {
+  for (const args of [
+    ['completion', 'zsh', 'extra'],
+    ['where', 'extra'],
+  ]) {
+    const r = hch(args);
+    expect(r.exit).toBe(2);
+    expect(r.stderr).toStartWith("hch: unexpected argument 'extra'");
+    expect(r.stdout).toBe('');
+  }
+});
+
+test('help ignores extra arguments', () => {
+  const r = hch(['help', 'where']);
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toContain('Usage: hch <command>');
+});

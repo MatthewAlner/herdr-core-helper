@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { HchError } from '../hc.ts';
-import { completionScript, zshCompletion, type CommandInfo } from './completion.ts';
+import { completionScript, shells, zshCompletion, type CommandInfo } from './completion.ts';
 
 const where: CommandInfo = { name: 'where', description: 'show where', formats: ['plain', 'json'] };
 
@@ -26,7 +26,9 @@ test('zshCompletion escapes colons in command descriptions', () => {
 
 test('zshCompletion offers only a command’s own format flags, mutually exclusive', () => {
   const script = zshCompletion([{ name: 'up', description: 'u', formats: ['plain', 'json'] }]);
-  expect(script).toContain("up)\n          _arguments \\\n            '(--json)--json[print JSON]'");
+  expect(script).toContain(
+    "up)\n          _arguments \\\n            '(- *)'{-h,--help}'[show help]' \\\n            '(--json)--json[print JSON]'",
+  );
   expect(script).not.toContain('--table');
 });
 
@@ -42,9 +44,14 @@ test('zshCompletion completes positional values', () => {
   expect(script).toContain("'1: :(zsh)'");
 });
 
-test('zshCompletion leaves out a branch for a command with no flags or args', () => {
-  const script = zshCompletion([{ name: 'help', description: 'h', formats: ['plain'] }]);
-  expect(script).not.toContain('help)');
+test('zshCompletion offers -h and --help after a command', () => {
+  const script = zshCompletion([{ name: 'version', description: 'v', formats: ['plain'] }]);
+  expect(script).toContain("version)\n          _arguments \\\n            '(- *)'{-h,--help}'[show help]'\n");
+});
+
+test('every listed shell has a completion script', () => {
+  expect(shells).toEqual(['zsh']);
+  for (const shell of shells) expect(completionScript(shell, [where])).toStartWith('#compdef hch');
 });
 
 test('completionScript returns the zsh script for zsh', () => {

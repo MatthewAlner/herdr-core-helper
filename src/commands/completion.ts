@@ -4,8 +4,6 @@ import type { Format } from '../output.ts';
 /** What completion needs to know about a command. `args` lists the values its first positional argument takes. */
 export type CommandInfo = { name: string; description: string; formats: Format[]; args?: string[] };
 
-export const shells = ['zsh'];
-
 const flagDescriptions: Record<Exclude<Format, 'plain'>, string> = {
   json: 'print JSON',
   table: 'print a table',
@@ -17,11 +15,13 @@ function quote(s: string): string {
   return `'${s.replaceAll("'", `'\\''`)}'`;
 }
 
-/** The `_arguments` specs for one command, or none when it takes no flags or arguments. */
+const helpSpec = `'(- *)'{-h,--help}'[show help]'`;
+
+/** The `_arguments` specs for one command: help, its format flags, and its positional values. */
 function argumentSpecs({ formats, args }: CommandInfo): string[] {
   const flags = formats.filter(f => f !== 'plain');
   const exclusions = `(${flags.map(f => `--${f}`).join(' ')})`;
-  const specs = flags.map(f => quote(`${exclusions}--${f}[${flagDescriptions[f]}]`));
+  const specs = [helpSpec, ...flags.map(f => quote(`${exclusions}--${f}[${flagDescriptions[f]}]`))];
   if (args?.length) specs.push(quote(`1: :(${args.join(' ')})`));
   return specs;
 }
@@ -31,7 +31,6 @@ export function zshCompletion(commands: CommandInfo[]): string {
   const entries = commands.map(c => `        ${quote(`${c.name}:${c.description.replaceAll(':', '\\:')}`)}`);
   const branches = commands.flatMap(c => {
     const specs = argumentSpecs(c);
-    if (!specs.length) return [];
     return [
       `        ${c.name})`,
       `          _arguments \\`,
@@ -45,7 +44,7 @@ _hch() {
   local curcontext="$curcontext" state line
   typeset -A opt_args
   _arguments -C \\
-    '(- *)'{-h,--help}'[show help]' \\
+    ${helpSpec} \\
     '1: :->command' \\
     '*:: :->args'
   case $state in
@@ -67,9 +66,16 @@ compdef _hch hch
 `;
 }
 
+/** Each supported shell's script generator. Adding a shell here is all it takes to support it. */
+const generators: Record<string, (commands: CommandInfo[]) => string> = { zsh: zshCompletion };
+
+export const shells = Object.keys(generators);
+
 /** The completion script for `shell`. */
 export function completionScript(shell: string | undefined, commands: CommandInfo[]): string {
   if (shell === undefined) throw new HchError(`completion needs a shell: ${shells.join(', ')}`, 2);
-  if (shell !== 'zsh') throw new HchError(`unknown shell '${shell}' (supported: ${shells.join(', ')})`, 2);
-  return zshCompletion(commands);
+  if (!Object.hasOwn(generators, shell)) {
+    throw new HchError(`unknown shell '${shell}' (supported: ${shells.join(', ')})`, 2);
+  }
+  return generators[shell]!(commands);
 }
