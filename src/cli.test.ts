@@ -145,3 +145,60 @@ test('up --json prints nothing on stdout when hc fails', () => {
   expect(r.stdout).toBe('');
   expect(r.stderr).toBe('hch: boom\n');
 });
+
+test('completion zsh prints a script that registers _hch', () => {
+  const r = hch(['completion', 'zsh']);
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toStartWith('#compdef hch');
+  expect(r.stdout).toContain("'where:show the space, tab and pane this terminal is in'");
+  expect(r.stdout).toContain('compdef _hch hch');
+  expect(r.stderr).toBe('');
+});
+
+test('completion with no shell exits 2', () => {
+  const r = hch(['completion']);
+  expect(r.exit).toBe(2);
+  expect(r.stderr).toStartWith('hch: completion needs a shell: zsh');
+});
+
+test('completion with an unknown shell exits 2', () => {
+  const r = hch(['completion', 'bash']);
+  expect(r.exit).toBe(2);
+  expect(r.stderr).toStartWith("hch: unknown shell 'bash' (supported: zsh)");
+});
+
+test('completion rejects format flags', () => {
+  const r = hch(['completion', 'zsh', '--json']);
+  expect(r.exit).toBe(2);
+  expect(r.stderr).toStartWith("hch: completion doesn't support --json");
+  expect(r.stdout).toBe('');
+});
+
+test('usage lists the completion command', () => {
+  expect(hch(['help']).stdout).toContain('  completion  print a shell completion script (zsh)');
+});
+
+test.skipIf(!Bun.which('zsh'))('completion zsh output is a script zsh accepts', () => {
+  const script = hch(['completion', 'zsh']).stdout;
+  const p = Bun.spawnSync(['zsh', '-n'], { stdin: new TextEncoder().encode(script) });
+  expect(p.stderr.toString()).toBe('');
+  expect(p.exitCode).toBe(0);
+});
+
+test('a command rejects unexpected arguments', () => {
+  for (const args of [
+    ['completion', 'zsh', 'extra'],
+    ['where', 'extra'],
+  ]) {
+    const r = hch(args);
+    expect(r.exit).toBe(2);
+    expect(r.stderr).toStartWith("hch: unexpected argument 'extra'");
+    expect(r.stdout).toBe('');
+  }
+});
+
+test('help ignores extra arguments', () => {
+  const r = hch(['help', 'where']);
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toContain('Usage: hch <command>');
+});

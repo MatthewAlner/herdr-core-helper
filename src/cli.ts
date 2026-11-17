@@ -3,32 +3,57 @@ import { $ } from 'bun';
 import { parseArgs } from 'node:util';
 import { hcErrorMessage, HchError } from './hc.ts';
 import type { Format } from './output.ts';
+import { completionScript, shells, type CommandInfo } from './commands/completion.ts';
 import { up } from './commands/up.ts';
 import { version } from './commands/version.ts';
 import { where } from './commands/where.ts';
+
+type Command = Omit<CommandInfo, 'name'> & { run: (format: Format, args: string[]) => Promise<void> | void };
+
+const commands: Record<string, Command> = {
+  where: {
+    description: 'show the space, tab and pane this terminal is in',
+    formats: ['plain', 'json', 'table', 'markdown'],
+    run: where,
+  },
+  version: {
+    description: 'show the herdr core build this tab runs, and the installed one',
+    formats: ['plain', 'json', 'table', 'markdown'],
+    run: version,
+  },
+  up: {
+    description: "replace this tab's shell with a fresh one on the installed herdr core",
+    formats: ['plain', 'json'],
+    run: up,
+  },
+  completion: {
+    description: 'print a shell completion script (zsh)',
+    formats: ['plain'],
+    args: shells,
+    run: (_format, [shell]) => console.log(completionScript(shell, commandInfo())),
+  },
+  help: { description: 'show this help', formats: ['plain'], run: () => console.log(USAGE) },
+};
+
+function commandInfo(): CommandInfo[] {
+  return Object.entries(commands).map(([name, { run, ...info }]) => ({ name, ...info }));
+}
+
+const nameWidth = Math.max(...Object.keys(commands).map(name => name.length)) + 2;
 
 const USAGE = `hch - herdr core helper
 
 Usage: hch <command> [--json | --table | --markdown]
 
 Commands
-  where     show the space, tab and pane this terminal is in
-  version   show the herdr core build this tab runs, and the installed one
-  up        replace this tab's shell with a fresh one on the installed herdr core
-  help      show this help
+${commandInfo()
+  .map(({ name, description }) => `  ${name.padEnd(nameWidth)}${description}`)
+  .join('\n')}
 
 Options
   --json      print JSON (where, version, up)
   --table     print a table (where, version)
   --markdown  print a Markdown table (where, version)`;
-
-type Command = { run: (format: Format) => Promise<void>; formats: Format[] };
-
-const commands: Record<string, Command> = {
-  where: { run: where, formats: ['plain', 'json', 'table', 'markdown'] },
-  version: { run: version, formats: ['plain', 'json', 'table', 'markdown'] },
-  up: { run: up, formats: ['plain', 'json'] },
-};
 
 const formatFlags = ['json', 'table', 'markdown'] as const;
 
@@ -56,16 +81,14 @@ async function main(argv: string[]): Promise<number> {
   const chosen = formatFlags.filter(flag => values[flag]);
   if (chosen.length > 1) return usageError('choose one of --json, --table, --markdown');
   const format: Format = chosen[0] ?? 'plain';
-  const [name] = positionals;
-  if (!name || name === 'help' || values.help) {
-    if (format !== 'plain') return usageError(`help doesn't support --${format}`);
-    console.log(USAGE);
-    return 0;
-  }
-  const command = commands[name];
+  const [first, ...args] = positionals;
+  const name = values.help || !first ? 'help' : first;
+  const command = Object.hasOwn(commands, name) ? commands[name] : undefined;
   if (!command) return usageError(`unknown command '${name}'`);
   if (!command.formats.includes(format)) return usageError(`${name} doesn't support --${format}`);
-  await command.run(format);
+  const allowed = command.args ? 1 : 0;
+  if (name !== 'help' && args.length > allowed) return usageError(`unexpected argument '${args[allowed]}'`);
+  await command.run(format, args);
   return 0;
 }
 

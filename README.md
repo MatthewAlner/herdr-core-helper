@@ -8,12 +8,13 @@
 hch <command> [--json | --table | --markdown]
 ```
 
-| Command       | What it does                                                                                         |
-| ------------- | ---------------------------------------------------------------------------------------------------- |
-| `hch where`   | Show the space, tab and pane this terminal is in, by name and id                                     |
-| `hch version` | Show the herdr core build this tab runs, and the installed one                                       |
-| `hch up`      | Replace this tab's shell with a fresh one on the installed herdr core, in the same tab and directory |
-| `hch help`    | Show usage                                                                                           |
+| Command              | What it does                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------- |
+| `hch where`          | Show the space, tab and pane this terminal is in, by name and id                                     |
+| `hch version`        | Show the herdr core build this tab runs, and the installed one                                       |
+| `hch up`             | Replace this tab's shell with a fresh one on the installed herdr core, in the same tab and directory |
+| `hch completion zsh` | Print a zsh completion script                                                                        |
+| `hch help`           | Show usage                                                                                           |
 
 ```console
 $ hch where
@@ -89,6 +90,16 @@ bun run setup
 ```
 
 `bun run setup` installs the dependencies and runs `bun link`, which puts `hch` in `~/.bun/bin`, running straight from the source, so edits take effect immediately.
+
+## Completions
+
+For tab completion in zsh, add this to your `.zshrc`, after `compinit` runs:
+
+```zsh
+source <(hch completion zsh)
+```
+
+It completes commands and each command's format flags.
 
 ## Develop
 

@@ -1,6 +1,8 @@
 # herdr-core-helper
 
-`hch` is a Bun CLI that wraps herdr core's `hc` command. See `README.md` for the commands, install and dev scripts, and `docs/superpowers/` for the design and plan.
+`hch` is a Bun CLI that wraps herdr core's `hc` command. See `README.md` for the commands, install and dev scripts, and `docs/superpowers/specs/` for the designs.
+
+Commit design specs to `docs/superpowers/specs/`, but keep implementation plans out of git: `docs/superpowers/plans/` is ignored, because the code records the how and a stale plan misleads later searches.
 
 ## Code
 
