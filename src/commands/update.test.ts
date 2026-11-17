@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { labelArgs, parseRunAddress, shellCwd } from './up.ts';
+import { labelArgs, parseRunAddress, shellCwd } from './update.ts';
 
 test('shellCwd keeps $PWD as typed when it is the same folder as cwd', () => {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'hch-cwd-')));

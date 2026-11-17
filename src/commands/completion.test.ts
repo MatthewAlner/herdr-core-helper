@@ -15,8 +15,8 @@ test('zshCompletion lists each command with its description', () => {
 });
 
 test('zshCompletion escapes single quotes', () => {
-  const script = zshCompletion([{ name: 'up', description: "this tab's shell", formats: ['plain'] }]);
-  expect(script).toContain("'up:this tab'\\''s shell'");
+  const script = zshCompletion([{ name: 'update', description: "this tab's shell", formats: ['plain'] }]);
+  expect(script).toContain("'update:this tab'\\''s shell'");
 });
 
 test('zshCompletion escapes colons in command descriptions', () => {
@@ -25,9 +25,9 @@ test('zshCompletion escapes colons in command descriptions', () => {
 });
 
 test('zshCompletion offers only a command’s own format flags, mutually exclusive', () => {
-  const script = zshCompletion([{ name: 'up', description: 'u', formats: ['plain', 'json'] }]);
+  const script = zshCompletion([{ name: 'update', description: 'u', formats: ['plain', 'json'] }]);
   expect(script).toContain(
-    "up)\n          _arguments \\\n            '(- *)'{-h,--help}'[show help]' \\\n            '(--json)--json[print JSON]'",
+    "update)\n          _arguments \\\n            '(- *)'{-h,--help}'[show help]' \\\n            '(--json)--json[print JSON]'",
   );
   expect(script).not.toContain('--table');
 });

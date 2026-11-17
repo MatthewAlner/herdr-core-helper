@@ -10,16 +10,35 @@ writeFileSync(
   `#!/bin/sh\nprintf '%s' "$FAKE_HC_STDOUT"\nprintf '%s' "$FAKE_HC_STDERR" >&2\nexit "\${FAKE_HC_EXIT:-0}"\n`,
 );
 chmodSync(join(fakeBin, 'hc'), 0o755);
-afterAll(() => rmSync(fakeBin, { recursive: true, force: true }));
+
+// A fake `herdr-app`, in its own folder so a test can leave it off PATH, that logs its
+// arguments to $FAKE_APP_LOG, prints $FAKE_APP_STDOUT and exits $FAKE_APP_EXIT.
+const fakeAppBin = mkdtempSync(join(tmpdir(), 'hch-test-app-'));
+writeFileSync(
+  join(fakeAppBin, 'herdr-app'),
+  `#!/bin/sh\necho "$*" >> "$FAKE_APP_LOG"\nprintf '%s' "$FAKE_APP_STDOUT"\nexit "\${FAKE_APP_EXIT:-0}"\n`,
+);
+chmodSync(join(fakeAppBin, 'herdr-app'), 0o755);
+const appLog = join(fakeAppBin, 'log');
+afterAll(() => {
+  rmSync(fakeBin, { recursive: true, force: true });
+  rmSync(fakeAppBin, { recursive: true, force: true });
+});
 
 type Hc = { stdout?: string; stderr?: string; exit?: number };
+type App = { stdout?: string; exit?: number };
 
-function hch(args: string[], { terminal, hc = {} }: { terminal?: string; hc?: Hc } = {}) {
+/** Runs hch with only the fakes and the system folders on PATH, so the real hc and herdr-app are never reached. */
+function hch(args: string[], { terminal, hc = {}, app }: { terminal?: string; hc?: Hc; app?: App } = {}) {
+  rmSync(appLog, { force: true });
   const env: Record<string, string> = {
-    PATH: `${fakeBin}:${process.env.PATH}`,
+    PATH: [fakeBin, ...(app ? [fakeAppBin] : []), '/usr/bin', '/bin'].join(':'),
     FAKE_HC_STDOUT: hc.stdout ?? '',
     FAKE_HC_STDERR: hc.stderr ?? '',
     FAKE_HC_EXIT: String(hc.exit ?? 0),
+    FAKE_APP_STDOUT: app?.stdout ?? '',
+    FAKE_APP_EXIT: String(app?.exit ?? 0),
+    FAKE_APP_LOG: appLog,
   };
   if (terminal) env.HC_TERMINAL_ID = terminal;
   const p = Bun.spawnSync([process.execPath, join(import.meta.dir, 'cli.ts'), ...args], { env });
@@ -88,9 +107,9 @@ test('two format flags exit 2', () => {
 });
 
 test("a format the command doesn't support exits 2", () => {
-  const r = hch(['up', '--table']);
+  const r = hch(['update', '--table']);
   expect(r.exit).toBe(2);
-  expect(r.stderr).toStartWith("hch: up doesn't support --table");
+  expect(r.stderr).toStartWith("hch: update doesn't support --table");
   expect(r.stdout).toBe('');
 });
 
@@ -131,19 +150,55 @@ test('where --table prints a box table', () => {
 });
 
 // Satisfies both `hc get` and `hc run`, which the fake answers with the same stdout.
-const newTerminal = JSON.stringify({ address: 't20', pid: 1, cwd: '/', labels: {} });
+const newTerminal = JSON.stringify({ address: 't20', pid: 1, cwd: '/', labels: { 'herdr.space': 'sp1' } });
 
-test('up --json prints the old and new terminal ids', () => {
-  const r = hch(['up', '--json'], { terminal: 't9', hc: { stdout: newTerminal } });
+test('update --json prints the old and new terminal ids', () => {
+  const r = hch(['update', '--json'], { terminal: 't9', hc: { stdout: newTerminal } });
   expect(r.exit).toBe(0);
   expect(JSON.parse(r.stdout)).toEqual({ from: 't9', to: 't20' });
 });
 
-test('up --json prints nothing on stdout when hc fails', () => {
-  const r = hch(['up', '--json'], { terminal: 't9', hc: { stderr: '{"error":{"message":"boom"}}', exit: 3 } });
+test('update --json prints nothing on stdout when hc fails', () => {
+  const r = hch(['update', '--json'], { terminal: 't9', hc: { stderr: '{"error":{"message":"boom"}}', exit: 3 } });
   expect(r.exit).toBe(3);
   expect(r.stdout).toBe('');
   expect(r.stderr).toBe('hch: boom\n');
+});
+
+test('update focuses the new terminal in Herdr', async () => {
+  const r = hch(['update'], { terminal: 't9', hc: { stdout: newTerminal }, app: {} });
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toBe('hch update: t9 -> t20\n');
+  expect(r.stderr).toBe('');
+  expect(await Bun.file(appLog).text()).toBe('do pane.focus --terminal t20\n');
+});
+
+test("update still replaces the shell when Herdr can't focus, and says why", async () => {
+  const app = { stdout: '{"error": "cannot open the Herdr window"}', exit: 1 };
+  const r = hch(['update'], { terminal: 't9', hc: { stdout: newTerminal }, app });
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toBe('hch update: t9 -> t20\n');
+  expect(r.stderr).toBe("hch: couldn't focus t20 in Herdr: cannot open the Herdr window\n");
+});
+
+test("update without herdr-app doesn't try to focus", async () => {
+  const r = hch(['update'], { terminal: 't9', hc: { stdout: newTerminal } });
+  expect(r.exit).toBe(0);
+  expect(r.stderr).toBe('');
+  expect(await Bun.file(appLog).exists()).toBe(false);
+});
+
+test("update doesn't focus a terminal Herdr doesn't show", async () => {
+  const r = hch(['update'], { terminal: 't9', hc: { stdout: terminal }, app: {} });
+  expect(r.exit).toBe(0);
+  expect(r.stderr).toBe('');
+  expect(await Bun.file(appLog).exists()).toBe(false);
+});
+
+test('up is no longer a command', () => {
+  const r = hch(['up']);
+  expect(r.exit).toBe(2);
+  expect(r.stderr).toStartWith("hch: unknown command 'up'");
 });
 
 test('completion zsh prints a script that registers _hch', () => {

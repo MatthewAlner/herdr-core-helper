@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import { hcErrorMessage, HchError } from './hc.ts';
 import type { Format } from './output.ts';
 import { completionScript, shells, type CommandInfo } from './commands/completion.ts';
-import { up } from './commands/up.ts';
+import { update } from './commands/update.ts';
 import { version } from './commands/version.ts';
 import { where } from './commands/where.ts';
 
@@ -21,10 +21,10 @@ const commands: Record<string, Command> = {
     formats: ['plain', 'json', 'table', 'markdown'],
     run: version,
   },
-  up: {
+  update: {
     description: "replace this tab's shell with a fresh one on the installed herdr core",
     formats: ['plain', 'json'],
-    run: up,
+    run: update,
   },
   completion: {
     description: 'print a shell completion script (zsh)',
@@ -51,7 +51,7 @@ ${commandInfo()
   .join('\n')}
 
 Options
-  --json      print JSON (where, version, up)
+  --json      print JSON (where, version, update)
   --table     print a table (where, version)
   --markdown  print a Markdown table (where, version)`;
 
