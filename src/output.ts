@@ -18,9 +18,10 @@ export function renderTable({ header, rows }: Rows): string {
   return table.toString();
 }
 
-/** A Markdown table with padded columns. */
+/** A Markdown table with padded columns. Pipes are escaped and line breaks flattened, so each cell stays in its column. */
 export function renderMarkdown({ header, rows }: Rows): string {
-  return markdownTable([header, ...rows]);
+  const cell = (s: string) => s.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+  return markdownTable([header, ...rows].map(row => row.map(cell)));
 }
 
 export function renderJson(data: unknown): string {

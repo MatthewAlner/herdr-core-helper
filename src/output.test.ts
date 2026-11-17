@@ -52,3 +52,9 @@ test('render picks the output for each format', () => {
   expect(render('table', out)).toBe(renderTable(t));
   expect(render('markdown', out)).toBe(renderMarkdown(t));
 });
+
+test('renderMarkdown escapes pipes and flattens line breaks so cells stay in their columns', () => {
+  expect(renderMarkdown({ header: ['A'], rows: [['a|b'], ['c\nd']] })).toBe(
+    ['| A    |', '| ---- |', '| a\\|b |', '| c d  |'].join('\n'),
+  );
+});
