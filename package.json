@@ -4,7 +4,8 @@
   "private": true,
   "devDependencies": {
     "@socketsecurity/bun-security-scanner": "^1.1.3",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "prettier": "^3.10.1"
   },
   "peerDependencies": {
     "typescript": "^7"
@@ -14,6 +15,12 @@
   },
   "scripts": {
     "test": "bun test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "cli-table3": "^0.6.5",
+    "markdown-table": "^3.1.0"
   }
 }

@@ -4,6 +4,10 @@
 
 ## Commands
 
+```
+hch <command> [--json | --table | --markdown]
+```
+
 | Command       | What it does                                                                                         |
 | ------------- | ---------------------------------------------------------------------------------------------------- |
 | `hch where`   | Show the space, tab and pane this terminal is in, by name and id                                     |
@@ -20,6 +24,59 @@ pane:  t14
 $ hch version
 tab: 0.1.20  installed: 0.1.21
 ```
+
+For tables or JSON instead, see [Output formats](#output-formats).
+
+## Output formats
+
+Commands print plain text by default. Add one of these flags for other formats:
+
+| Flag         | Prints                     | Commands                    |
+| ------------ | -------------------------- | --------------------------- |
+| `--table`    | a box-drawn table          | `where`, `version`          |
+| `--markdown` | a Markdown table           | `where`, `version`          |
+| `--json`     | JSON, for scripts and `jq` | `where`, `version` and `up` |
+
+```console
+$ hch where --table
+┌───────┬────────────┬────────────────────────────────────┐
+│       │    Name    │                 ID                 │
+├───────┼────────────┼────────────────────────────────────┤
+│ Space │ my-project │ spac0123456789abcdef0123456789abcd │
+├───────┼────────────┼────────────────────────────────────┤
+│ Tab   │ 1          │ tb0123456789abcdef0123456789abcdef │
+├───────┼────────────┼────────────────────────────────────┤
+│ Pane  │            │ t14                                │
+└───────┴────────────┴────────────────────────────────────┘
+
+$ hch where --markdown
+|       | Name       | ID                                 |
+| ----- | ---------- | ---------------------------------- |
+| Space | my-project | spac0123456789abcdef0123456789abcd |
+| Tab   | 1          | tb0123456789abcdef0123456789abcdef |
+| Pane  |            | t14                                |
+
+$ hch where --json
+{
+  "space": {
+    "name": "my-project",
+    "id": "spac0123456789abcdef0123456789abcd"
+  },
+  "tab": {
+    "name": "1",
+    "id": "tb0123456789abcdef0123456789abcdef"
+  },
+  "pane": "t14"
+}
+
+$ hch up --json
+{
+  "from": "t14",
+  "to": "t15"
+}
+```
+
+A missing name or id is `null` in JSON and an empty cell in the tables. Passing more than one format flag, or one the command doesn't take, is an error.
 
 ## Install
 
@@ -39,4 +96,6 @@ bun link
 ```bash
 bun test
 bun run typecheck
+bun run format         # format everything with Prettier
+bun run format:check   # check formatting without changing files
 ```

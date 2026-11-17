@@ -48,7 +48,7 @@ herdr workspace close <workspace>
 ## Repo
 
 - The repo is public. Keep personal paths and details out of committed files.
-- Run `prettier --write` on any Markdown file with a table before committing.
+- Run `bun run format` before committing.
 
 ## Bun
 
