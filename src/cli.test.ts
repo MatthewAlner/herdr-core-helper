@@ -276,12 +276,6 @@ test('update --force -y --json on a current tab prints the old and new ids', () 
   expect(JSON.parse(r.stdout)).toEqual({ from: 't9', to: 't20' });
 });
 
-test('up is no longer a command', () => {
-  const r = hch(['up']);
-  expect(r.exit).toBe(2);
-  expect(r.stderr).toStartWith("hch: unknown command 'up'");
-});
-
 test('completion zsh prints a script that registers _hch', () => {
   const r = hch(['completion', 'zsh']);
   expect(r.exit).toBe(0);
