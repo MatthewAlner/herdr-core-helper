@@ -2,7 +2,9 @@ import { $ } from 'bun';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { getTerminal, HchError, requireTerminalId } from '../hc.ts';
-import type { Format } from '../output.ts';
+import { render, type Format, type Rows } from '../output.ts';
+
+export type VersionData = { tab: string; installed: string };
 
 /** `hc 0.1.21` → `0.1.21` */
 export function parseVersion(output: string): string {
@@ -29,5 +31,18 @@ export async function version(format: Format): Promise<void> {
   const exe = await holderExecutable(t.pid);
   const tab = parseVersion(await $`${exe} --version`.text());
   const installed = parseVersion(await $`${join(homedir(), '.local/bin/herdr-core')} --version`.text());
-  console.log(formatVersion(tab, installed));
+  const data = { tab, installed };
+  console.log(
+    render(format, { plain: () => formatVersion(tab, installed), json: data, rows: () => versionRows(data) }),
+  );
+}
+
+export function versionRows(d: VersionData): Rows {
+  return {
+    header: ['', 'Version'],
+    rows: [
+      ['Tab', d.tab],
+      ['Installed', d.installed],
+    ],
+  };
 }

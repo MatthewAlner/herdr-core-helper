@@ -1,5 +1,5 @@
 import { getTerminal, requireTerminalId, type Terminal } from '../hc.ts';
-import { renderJson, renderMarkdown, renderTable, type Format, type Rows } from '../output.ts';
+import { render, type Format, type Rows } from '../output.ts';
 
 type Named = { name: string | null; id: string | null };
 export type WhereData = { space: Named; tab: Named; pane: string };
@@ -35,8 +35,6 @@ export function whereRows(d: WhereData): Rows {
 
 export async function where(format: Format): Promise<void> {
   const t = await getTerminal(requireTerminalId());
-  if (format === 'plain') console.log(formatWhere(t));
-  else if (format === 'json') console.log(renderJson(whereData(t)));
-  else if (format === 'table') console.log(renderTable(whereRows(whereData(t))));
-  else console.log(renderMarkdown(whereRows(whereData(t))));
+  const data = whereData(t);
+  console.log(render(format, { plain: () => formatWhere(t), json: data, rows: () => whereRows(data) }));
 }

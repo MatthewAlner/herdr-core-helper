@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { renderJson, renderMarkdown, renderTable } from './output.ts';
+import { render, renderJson, renderMarkdown, renderTable } from './output.ts';
 
 const t = {
   header: ['', 'Name'],
@@ -43,4 +43,12 @@ test('renderMarkdown pads columns', () => {
 
 test('renderJson indents by two spaces', () => {
   expect(renderJson({ a: 1 })).toBe('{\n  "a": 1\n}');
+});
+
+test('render picks the output for each format', () => {
+  const out = { plain: () => 'plain text', json: { a: 1 }, rows: () => t };
+  expect(render('plain', out)).toBe('plain text');
+  expect(render('json', out)).toBe(renderJson({ a: 1 }));
+  expect(render('table', out)).toBe(renderTable(t));
+  expect(render('markdown', out)).toBe(renderMarkdown(t));
 });
