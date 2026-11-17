@@ -21,6 +21,57 @@ $ hch version
 tab: 0.1.20  installed: 0.1.21
 ```
 
+## Output formats
+
+`where` and `version` print plain text by default. Add one of these flags for other formats:
+
+| Flag         | Prints                     | Commands                    |
+| ------------ | -------------------------- | --------------------------- |
+| `--table`    | a box-drawn table          | `where`, `version`          |
+| `--markdown` | a Markdown table           | `where`, `version`          |
+| `--json`     | JSON, for scripts and `jq` | `where`, `version` and `up` |
+
+```console
+$ hch where --table
+┌───────┬────────────┬────────────────────────────────────┐
+│       │    Name    │                 ID                 │
+├───────┼────────────┼────────────────────────────────────┤
+│ Space │ my-project │ spac0123456789abcdef0123456789abcd │
+├───────┼────────────┼────────────────────────────────────┤
+│ Tab   │ 1          │ tb0123456789abcdef0123456789abcdef │
+├───────┼────────────┼────────────────────────────────────┤
+│ Pane  │            │ t14                                │
+└───────┴────────────┴────────────────────────────────────┘
+
+$ hch where --markdown
+|       | Name       | ID                                 |
+| ----- | ---------- | ---------------------------------- |
+| Space | my-project | spac0123456789abcdef0123456789abcd |
+| Tab   | 1          | tb0123456789abcdef0123456789abcdef |
+| Pane  |            | t14                                |
+
+$ hch where --json
+{
+  "space": {
+    "name": "my-project",
+    "id": "spac0123456789abcdef0123456789abcd"
+  },
+  "tab": {
+    "name": "1",
+    "id": "tb0123456789abcdef0123456789abcdef"
+  },
+  "pane": "t14"
+}
+
+$ hch up --json
+{
+  "from": "t14",
+  "to": "t15"
+}
+```
+
+A missing name or id is `null` in JSON and an empty cell in the tables. Passing more than one format flag, or one the command doesn't take, is an error.
+
 ## Install
 
 Needs [Bun](https://bun.com) and herdr core's `hc` on your `PATH`.
