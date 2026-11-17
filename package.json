@@ -1,5 +1,5 @@
 {
-  "name": "hch",
+  "name": "herdr-core-helper",
   "type": "module",
   "private": true,
   "devDependencies": {
