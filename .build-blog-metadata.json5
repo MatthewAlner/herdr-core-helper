@@ -1,0 +1,24 @@
+// Metadata for the automattech build blog: Herdr Core Helper.
+// Optional fields are commented out; uncomment the ones you want.
+{
+  blog: true,
+  showcase: false,
+  archived: false,
+  id: "88010efd-58a1-4a11-a2f5-6ee42f5f8fde",
+  slug: "herdr-core-helper",
+  title: "Herdr Core Helper",
+  description: "A small command-line helper for herdr core terminals, wrapping its `hc` command. `hch where` shows the space, tab and pane the current terminal is in. `hch version` compares the herdr core build the tab is running with the one installed. `hch up` swaps the tab's shell for a fresh one on the installed build, in the same tab and folder, so an update takes effect without rebuilding the layout.",
+
+  tagline: "Little helpers for herdr core.",
+  motivation: "These started as zsh functions in my dotfiles. As they grew, I wanted them tested and in one place rather than as jq pipelines in an alias file, and easy for other herdr core users to install and use too.",
+  stage: "usable", // idea | spike | research | prototype | usable | complete | product
+  links: {
+    github: "https://github.com/MatthewAlner/herdr-core-helper",
+  },
+  tags: ["tool", "cli", "terminal", "herdr", "developer tools"], // subjects and purposes
+  stack: ["TypeScript", "Bun"], // technologies
+  // screenshots: {
+  //   cover: "docs/cover.png", // project-relative path or HTTPS URL
+  //   items: [{ src: "docs/screenshot.png", alt: "What it shows", caption: "Optional caption" }],
+  // },
+}
