@@ -20,12 +20,12 @@ const commands: Record<string, Command> = {
     run: where,
   },
   version: {
-    description: 'show the herdr core build this tab runs, and the installed one',
+    description: 'show whether this tab runs the installed herdr core',
     formats: ['plain', 'json', 'table', 'markdown'],
     run: version,
   },
   update: {
-    description: "replace this tab's shell with a fresh one on the installed herdr core",
+    description: "update this tab's shell to the installed herdr core, asking first",
     formats: ['plain', 'json'],
     flags: [
       { name: 'force', description: "replace the shell even when it's up to date" },

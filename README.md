@@ -37,10 +37,10 @@ When the tab is up to date, `hch version` and `hch update` both print `herdr cor
 
 `hch update` asks before it replaces the shell. Enter, or anything other than `y` or `yes`, leaves it alone. Two flags change that:
 
-| Flag          | What it does                                                                     |
-| ------------- | -------------------------------------------------------------------------------- |
-| `--force`     | Replace the shell even when the tab is up to date, after asking "anyway?"        |
-| `-y`, `--yes` | Don't ask. Needed with `--json`, or when no terminal is attached to ask through. |
+| Flag          | What it does                                                                                          |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| `--force`     | Replace the shell even when the tab is up to date, after asking "anyway?"                             |
+| `-y`, `--yes` | Don't ask. Needed when `hch update` would ask but can't: with `--json`, or with no terminal attached. |
 
 The new shell prints its version line first, before your shell's startup files run, so the new pane shows what it now runs. `hch update` also focuses the new pane in the Herdr app with `herdr-app do pane.focus`, before it ends the old shell. Without `herdr-app` on your `PATH` it skips that step, and if Herdr can't focus the pane it says why and replaces the shell anyway.
 
@@ -115,6 +115,14 @@ $ hch update --json -y
   "from": "t14",
   "to": "t15"
 }
+
+$ hch update --json        # on an up-to-date tab, it stops
+{
+  "tab": "0.1.21",
+  "installed": "0.1.21",
+  "up_to_date": true,
+  "updated": false
+}
 ```
 
 A missing name or id is `null` in JSON and an empty cell in the tables. Passing more than one format flag, or one the command doesn't take, is an error.
@@ -139,14 +147,14 @@ For tab completion in zsh, add this to your `.zshrc`, after `compinit` runs:
 source <(hch completion zsh)
 ```
 
-It completes commands and each command's format flags:
+It completes commands, and after a command, the format flags and options that command takes:
 
 ```console
 $ hch <TAB>
 completion  -- print a shell completion script (zsh)
 help        -- show this help
-update      -- replace this tab's shell with a fresh one on the installed herdr core
-version     -- show the herdr core build this tab runs, and the installed one
+update      -- update this tab's shell to the installed herdr core, asking first
+version     -- show whether this tab runs the installed herdr core
 where       -- show the space, tab and pane this terminal is in
 
 $ hch where -<TAB>
@@ -154,6 +162,12 @@ $ hch where -<TAB>
 --json          -- print JSON
 --markdown      -- print a Markdown table
 --table         -- print a table
+
+$ hch update -<TAB>
+--force      -- replace the shell even when it's up to date
+--help   -h  -- show help
+--json       -- print JSON
+--yes    -y  -- replace it without asking
 ```
 
 ## Develop
