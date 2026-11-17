@@ -64,7 +64,7 @@ test('shQuote single-quotes for sh, escaping single quotes', () => {
 
 test('shellCommand prints the version with hc and bun on PATH, then starts the login shell', () => {
   expect(shellCommand({ bun: '/b/bin/bun', script: '/s/src/cli.ts', hcDir: '/h/bin' })).toBe(
-    `PATH='/h/bin:/b/bin':"$PATH" '/b/bin/bun' '/s/src/cli.ts' version; exec "$SHELL" -l`,
+    `PATH='/h/bin:/b/bin':"$PATH" '/b/bin/bun' '/s/src/cli.ts' version; exec "\${SHELL:-/bin/sh}" -l`,
   );
 });
 
@@ -85,6 +85,22 @@ test('shellCommand runs under sh with spaces and quotes in its paths', () => {
       env: { SHELL: '/usr/bin/true', PATH: '/usr/bin:/bin' },
     });
     expect(p.stdout.toString()).toBe(`${script} version\n`);
+    expect(p.exitCode).toBe(0);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('shellCommand still starts a shell when $SHELL is empty', () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'hch-sh-')));
+  try {
+    const bun = join(root, 'bun');
+    writeFileSync(bun, '#!/bin/sh\n');
+    chmodSync(bun, 0o755);
+    const p = Bun.spawnSync(['/bin/sh', '-c', shellCommand({ bun, script: '/x/cli.ts', hcDir: null })], {
+      env: { SHELL: '', PATH: '/usr/bin:/bin' },
+      stdin: 'ignore',
+    });
     expect(p.exitCode).toBe(0);
   } finally {
     rmSync(root, { recursive: true, force: true });

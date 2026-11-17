@@ -50,7 +50,7 @@ export function shQuote(s: string): string {
  */
 export function shellCommand({ bun, script, hcDir }: { bun: string; script: string; hcDir: string | null }): string {
   const path = [...(hcDir ? [hcDir] : []), dirname(bun)].join(':');
-  return `PATH=${shQuote(path)}:"$PATH" ${shQuote(bun)} ${shQuote(script)} version; exec "$SHELL" -l`;
+  return `PATH=${shQuote(path)}:"$PATH" ${shQuote(bun)} ${shQuote(script)} version; exec "\${SHELL:-/bin/sh}" -l`;
 }
 
 /**

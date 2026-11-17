@@ -266,7 +266,7 @@ test('update -y on an outdated tab replaces the shell through the version-printi
   expect(r.stdout).toBe('herdr core 0.1.20, 0.1.21 installed: run hch update\nhch update: t9 -> t20\n');
   const run = (await hcCalls()).find(c => c.startsWith('run'));
   expect(run).toContain('-- /bin/sh -c');
-  expect(run).toContain('version; exec "$SHELL" -l');
+  expect(run).toContain('version; exec "${SHELL:-/bin/sh}" -l');
   expect(await hcCalls()).toContain('kill t9');
 });
 

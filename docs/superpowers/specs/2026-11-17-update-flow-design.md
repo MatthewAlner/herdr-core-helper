@@ -42,10 +42,10 @@
 - **The wrapper:** `hch update` builds the command from paths it knows in the old shell: `bun` from `process.execPath`, the script from `Bun.main`, the folder holding `hc` from `Bun.which('hc')`. It adds those folders to PATH for the version print only, quoting every path for `sh`:
 
   ```sh
-  PATH='<hc dir>:<bun dir>':"$PATH" '<bun>' '<cli.ts>' version; exec "$SHELL" -l
+  PATH='<hc dir>:<bun dir>':"$PATH" '<bun>' '<cli.ts>' version; exec "${SHELL:-/bin/sh}" -l
   ```
 
-  `;`, not `&&`, so a failed print still starts the shell.
+  `;`, not `&&`, so a failed print still starts the shell, and an empty `$SHELL` falls back to `/bin/sh` rather than leaving a dead pane.
 
 - **The question:** read from the terminal. When stdin isn't a terminal, or with `--json`, `hch update` without `-y` doesn't ask: it fails with `hch: update needs --yes when it can't ask`, exit 2, before changing anything.
 - **`--json`:** prints `{"from", "to"}` as now when it replaces the shell, or `{"tab", "installed", "up_to_date", "updated": false}` when it stops. JSON goes to stdout and nothing else does, so the version line isn't printed separately.
