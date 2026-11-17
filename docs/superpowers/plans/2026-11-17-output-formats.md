@@ -64,7 +64,13 @@
 - [ ] **Step 2: Write failing tests** in `src/output.test.ts`:
 
 ```ts
-const t = { header: ['', 'Name'], rows: [['Space', 'abc'], ['Tab', '1']] };
+const t = {
+  header: ['', 'Name'],
+  rows: [
+    ['Space', 'abc'],
+    ['Tab', '1'],
+  ],
+};
 
 test('renderTable draws a box with centred headers and a rule between rows', () => {
   expect(renderTable(t)).toBe(
