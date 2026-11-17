@@ -85,11 +85,10 @@ Needs [Bun](https://bun.com) and herdr core's `hc` on your `PATH`.
 ```bash
 git clone https://github.com/MatthewAlner/herdr-core-helper.git
 cd herdr-core-helper
-bun install
-bun link
+bun run setup
 ```
 
-`bun link` puts `hch` in `~/.bun/bin`, running straight from the source, so edits take effect immediately.
+`bun run setup` installs the dependencies and runs `bun link`, which puts `hch` in `~/.bun/bin`, running straight from the source, so edits take effect immediately.
 
 ## Develop
 
