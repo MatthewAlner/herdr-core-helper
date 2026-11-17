@@ -107,3 +107,25 @@ test('a format flag before the command works', () => {
   const r = hch(['--json', 'where'], { terminal: 't9', hc: { stdout: terminal } });
   expect(r.exit).toBe(0);
 });
+
+test('where --json prints the terminal as JSON', () => {
+  const r = hch(['where', '--json'], { terminal: 't9', hc: { stdout: terminal } });
+  expect(r.exit).toBe(0);
+  expect(JSON.parse(r.stdout)).toEqual({
+    space: { name: 's', id: null },
+    tab: { name: '2', id: null },
+    pane: 't9',
+  });
+});
+
+test('where --markdown prints a Markdown table', () => {
+  const r = hch(['where', '--markdown'], { terminal: 't9', hc: { stdout: terminal } });
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toStartWith('|       | Name |');
+});
+
+test('where --table prints a box table', () => {
+  const r = hch(['where', '--table'], { terminal: 't9', hc: { stdout: terminal } });
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toStartWith('┌');
+});
