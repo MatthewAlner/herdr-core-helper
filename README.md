@@ -4,12 +4,12 @@
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `hch where` | Show the space, tab and pane this terminal is in, by name and id |
-| `hch version` | Show the herdr core build this tab runs, and the installed one |
-| `hch up` | Replace this tab's shell with a fresh one on the installed herdr core, in the same tab and directory |
-| `hch help` | Show usage |
+| Command       | What it does                                                                                         |
+| ------------- | ---------------------------------------------------------------------------------------------------- |
+| `hch where`   | Show the space, tab and pane this terminal is in, by name and id                                     |
+| `hch version` | Show the herdr core build this tab runs, and the installed one                                       |
+| `hch up`      | Replace this tab's shell with a fresh one on the installed herdr core, in the same tab and directory |
+| `hch help`    | Show usage                                                                                           |
 
 ```console
 $ hch where
