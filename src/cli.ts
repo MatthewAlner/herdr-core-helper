@@ -2,6 +2,7 @@
 import { $ } from "bun";
 import { parseArgs } from "node:util";
 import { HchError } from "./hc.ts";
+import { version } from "./commands/version.ts";
 import { where } from "./commands/where.ts";
 
 const USAGE = `hch - herdr core helper
@@ -10,9 +11,10 @@ Usage: hch <command>
 
 Commands
   where     show the space, tab and pane this terminal is in
+  version   show the herdr core build this tab runs, and the installed one
   help      show this help`;
 
-const commands: Record<string, () => Promise<void>> = { where };
+const commands: Record<string, () => Promise<void>> = { where, version };
 
 async function main(argv: string[]): Promise<number> {
   const { positionals, values } = parseArgs({
