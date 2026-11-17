@@ -9,7 +9,7 @@ import { where } from './commands/where.ts';
 
 const USAGE = `hch - herdr core helper
 
-Usage: hch <command>
+Usage: hch <command> [--json | --table | --markdown]
 
 Commands
   where     show the space, tab and pane this terminal is in

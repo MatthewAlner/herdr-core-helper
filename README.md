@@ -4,6 +4,10 @@
 
 ## Commands
 
+```
+hch <command> [--json | --table | --markdown]
+```
+
 | Command       | What it does                                                                                         |
 | ------------- | ---------------------------------------------------------------------------------------------------- |
 | `hch where`   | Show the space, tab and pane this terminal is in, by name and id                                     |
@@ -21,9 +25,11 @@ $ hch version
 tab: 0.1.20  installed: 0.1.21
 ```
 
+For tables or JSON instead, see [Output formats](#output-formats).
+
 ## Output formats
 
-`where` and `version` print plain text by default. Add one of these flags for other formats:
+Commands print plain text by default. Add one of these flags for other formats:
 
 | Flag         | Prints                     | Commands                    |
 | ------------ | -------------------------- | --------------------------- |
@@ -90,4 +96,6 @@ bun link
 ```bash
 bun test
 bun run typecheck
+bun run format         # format everything with Prettier
+bun run format:check   # check formatting without changing files
 ```
