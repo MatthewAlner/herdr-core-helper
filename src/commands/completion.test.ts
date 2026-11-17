@@ -79,3 +79,19 @@ test('completionScript with an unknown shell throws exit 2', () => {
   expect(err.exitCode).toBe(2);
   expect(err.message).toBe("unknown shell 'bash' (supported: zsh)");
 });
+
+test("zshCompletion offers a command's own flags, pairing a short form with its long one", () => {
+  const script = zshCompletion([
+    {
+      name: 'update',
+      description: 'u',
+      formats: ['plain'],
+      flags: [
+        { name: 'force', description: "replace the shell even when it's up to date" },
+        { name: 'yes', short: 'y', description: 'replace it without asking' },
+      ],
+    },
+  ]);
+  expect(script).toContain("'--force[replace the shell even when it'\\''s up to date]'");
+  expect(script).toContain("'(-y --yes)'{-y,--yes}'[replace it without asking]'");
+});

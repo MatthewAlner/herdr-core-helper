@@ -252,6 +252,27 @@ test('a command rejects unexpected arguments', () => {
   }
 });
 
+test("another command's flags are unknown options", () => {
+  for (const flag of ['--force', '-y', '--yes']) {
+    const r = hch(['where', flag]);
+    expect(r.exit).toBe(2);
+    expect(r.stderr).toStartWith(`hch: unknown option '${flag}'`);
+    expect(r.stdout).toBe('');
+  }
+});
+
+test("completion offers update's flags", () => {
+  const out = hch(['completion', 'zsh']).stdout;
+  expect(out).toContain('--force[');
+  expect(out).toContain("'(-y --yes)'{-y,--yes}");
+});
+
+test("usage lists update's flags", () => {
+  const out = hch(['help']).stdout;
+  expect(out).toContain('--force');
+  expect(out).toContain('-y, --yes');
+});
+
 test('help ignores extra arguments', () => {
   const r = hch(['help', 'where']);
   expect(r.exit).toBe(0);
