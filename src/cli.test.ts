@@ -129,3 +129,19 @@ test('where --table prints a box table', () => {
   expect(r.exit).toBe(0);
   expect(r.stdout).toStartWith('┌');
 });
+
+// Satisfies both `hc get` and `hc run`, which the fake answers with the same stdout.
+const newTerminal = JSON.stringify({ address: 't20', pid: 1, cwd: '/', labels: {} });
+
+test('up --json prints the old and new terminal ids', () => {
+  const r = hch(['up', '--json'], { terminal: 't9', hc: { stdout: newTerminal } });
+  expect(r.exit).toBe(0);
+  expect(JSON.parse(r.stdout)).toEqual({ from: 't9', to: 't20' });
+});
+
+test('up --json prints nothing on stdout when hc fails', () => {
+  const r = hch(['up', '--json'], { terminal: 't9', hc: { stderr: '{"error":{"message":"boom"}}', exit: 3 } });
+  expect(r.exit).toBe(3);
+  expect(r.stdout).toBe('');
+  expect(r.stderr).toBe('hch: boom\n');
+});

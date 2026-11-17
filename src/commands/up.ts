@@ -1,6 +1,6 @@
 import { realpathSync } from 'node:fs';
 import { getTerminal, HchError, killTerminal, requireTerminalId, runTerminal } from '../hc.ts';
-import type { Format } from '../output.ts';
+import { renderJson, type Format } from '../output.ts';
 
 /** One `--label=k=v` per label, minus `herdr.seen` so the new terminal starts unseen. */
 export function labelArgs(labels: Record<string, string>): string[] {
@@ -28,6 +28,6 @@ export async function up(format: Format): Promise<void> {
   const id = requireTerminalId();
   const t = await getTerminal(id);
   const next = parseRunAddress(await runTerminal(['--cwd', shellCwd(), ...labelArgs(t.labels)]));
-  console.log(`hch up: ${id} -> ${next}`);
+  console.log(format === 'json' ? renderJson({ from: id, to: next }) : `hch up: ${id} -> ${next}`);
   await killTerminal(id);
 }
