@@ -1,8 +1,11 @@
 import { HchError } from '../hc.ts';
 import type { Format } from '../output.ts';
 
+/** A boolean flag only one command takes, with an optional one-letter form. */
+export type Flag = { name: string; short?: string; description: string };
+
 /** What completion needs to know about a command. `args` lists the values its first positional argument takes. */
-export type CommandInfo = { name: string; description: string; formats: Format[]; args?: string[] };
+export type CommandInfo = { name: string; description: string; formats: Format[]; args?: string[]; flags?: Flag[] };
 
 const flagDescriptions: Record<Exclude<Format, 'plain'>, string> = {
   json: 'print JSON',
@@ -17,11 +20,20 @@ function quote(s: string): string {
 
 const helpSpec = `'(- *)'{-h,--help}'[show help]'`;
 
-/** The `_arguments` specs for one command: help, its format flags, and its positional values. */
-function argumentSpecs({ formats, args }: CommandInfo): string[] {
+function flagSpec({ name, short, description }: Flag): string {
+  if (!short) return quote(`--${name}[${description}]`);
+  return `${quote(`(-${short} --${name})`)}{-${short},--${name}}${quote(`[${description}]`)}`;
+}
+
+/** The `_arguments` specs for one command: help, its format flags, its own flags, and its positional values. */
+function argumentSpecs({ formats, args, flags: own = [] }: CommandInfo): string[] {
   const flags = formats.filter(f => f !== 'plain');
   const exclusions = `(${flags.map(f => `--${f}`).join(' ')})`;
-  const specs = [helpSpec, ...flags.map(f => quote(`${exclusions}--${f}[${flagDescriptions[f]}]`))];
+  const specs = [
+    helpSpec,
+    ...flags.map(f => quote(`${exclusions}--${f}[${flagDescriptions[f]}]`)),
+    ...own.map(flagSpec),
+  ];
   if (args?.length) specs.push(quote(`1: :(${args.join(' ')})`));
   return specs;
 }

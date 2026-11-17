@@ -7,7 +7,7 @@ Commit design specs to `docs/superpowers/specs/`, but keep implementation plans 
 ## Code
 
 - Each command lives in `src/commands/<name>.ts`. Keep its parsing and formatting in exported pure functions with unit tests beside it, and keep the `hc` calls in `src/hc.ts`.
-- `src/cli.test.ts` runs `src/cli.ts` as a subprocess against a fake `hc` on `PATH`. Cover exit codes and error messages there.
+- `src/cli.test.ts` runs `src/cli.ts` as a subprocess against a fake `hc` and `herdr-app` on `PATH`, leaving out the real ones. Cover exit codes and error messages there.
 - Throw `HchError` for failures the user should see. `src/cli.ts` prints it as `hch: <message>` and exits with its code.
 - Interpolating an array into Bun Shell's `` $`...` `` passes each element as a separate argument.
 
@@ -15,24 +15,28 @@ Commit design specs to `docs/superpowers/specs/`, but keep implementation plans 
 
 Run these after `bun test` passes, for changes that touch how `hch` talks to `hc`. `bun link` makes `hch` run from the source, so the checks see your edits. Remove every terminal and workspace you create.
 
-`hch up` kills the terminal it runs in, so never run it with your own `HC_TERMINAL_ID`. Point it at a throwaway terminal:
+`hch update` kills the terminal it runs in, so never run it with your own `HC_TERMINAL_ID`. Your tab is usually up to date, so these checks pass `--force`; without a terminal to ask through they also need `-y`. Point it at a throwaway terminal:
 
 ```bash
 id=$(hc run --bg --no-parent --keep --json --label=test=x | jq -r .address)
-HC_TERMINAL_ID=$id hch up               # prints "hch up: <id> -> <new>"
+HC_TERMINAL_ID=$id hch update --force -y   # the version line, then "hch update: <id> -> <new>"
 hc get <new> --json | jq '{cwd, labels}'
 hc kill <new>; hc rm $id; hc rm <new>
 ```
 
-To check `hch up` in a real herdr core tab, run it from inside a terminal in your own tab. Copy your terminal's labels, except `herdr.seen`, so the new terminal joins your tab. Starting it in `/tmp`, a symlink to `/private/tmp` on macOS, also checks that the new shell keeps the folder as typed:
+To check `hch update` in a real herdr core tab, run it from inside a terminal in your own tab. Copy your terminal's labels, except `herdr.seen`, so the new terminal joins your tab. Starting it in `/tmp`, a symlink to `/private/tmp` on macOS, also checks that the new shell keeps the folder as typed:
 
 ```bash
 hc get "$HC_TERMINAL_ID" --json | jq -r '.labels | to_entries[] | select(.key != "herdr.seen") | "--label=\(.key)=\(.value)"'
 hc run --bg --no-parent --keep --json --cwd /tmp --label=hchtest=1 <those labels...>   # gives <t>
 hc send <t> 'cd /tmp && hch where; pwd; echo "id=$HC_TERMINAL_ID"'
 hc wait <t> --output 'id=<t>'; hc read <t>
-hc send <t> 'hch up'
-hc read <t>                             # "hch up: <t> -> <new>"; <t> is now finished
+hc send <t> 'hch update --force'; hc send <t> 'n'
+hc read <t>                             # the version line, "...anyway? [y/N] n", and <t> still live
+hc send <t> 'hch update --force -y'
+hc read <t>                             # "hch update: <t> -> <new>"; <t> is now finished
+hc wait <new> --output 'herdr core'; hc read <new>   # the version line comes first
+herdr-app status | jq .focused_pane    # the pane showing <new>: hch update focused it
 hc send <new> 'hch where; pwd'          # same space and tab, pane <new>, /tmp
 hc kill <new>; hc rm <t>; hc rm <new>
 ```

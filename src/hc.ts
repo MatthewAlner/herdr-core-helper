@@ -56,3 +56,8 @@ export async function runTerminal(args: string[]): Promise<unknown> {
 export async function killTerminal(id: string): Promise<void> {
   await $`hc kill ${id}`.quiet();
 }
+
+/** `hc --version`'s output: the installed herdr core build (`hc` is that binary). */
+export async function hcVersion(): Promise<string> {
+  return await $`hc --version`.quiet().text();
+}

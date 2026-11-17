@@ -3,27 +3,75 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-// A fake `hc` that prints $FAKE_HC_STDOUT and $FAKE_HC_STDERR and exits $FAKE_HC_EXIT.
 const fakeBin = mkdtempSync(join(tmpdir(), 'hch-test-'));
-writeFileSync(
-  join(fakeBin, 'hc'),
-  `#!/bin/sh\nprintf '%s' "$FAKE_HC_STDOUT"\nprintf '%s' "$FAKE_HC_STDERR" >&2\nexit "\${FAKE_HC_EXIT:-0}"\n`,
+const hcLog = join(fakeBin, 'hc.log');
+function fake(dir: string, name: string, body: string) {
+  writeFileSync(join(dir, name), `#!/bin/sh\n${body}\n`);
+  chmodSync(join(dir, name), 0o755);
+}
+// A fake `hc`: `--version` reports $FAKE_INSTALLED; anything else is logged to $FAKE_HC_LOG, prints
+// $FAKE_HC_STDOUT and $FAKE_HC_STDERR, and exits $FAKE_HC_EXIT.
+fake(
+  fakeBin,
+  'hc',
+  `if [ "$1" = --version ]; then echo "hc $FAKE_INSTALLED"; exit 0; fi
+echo "$*" >> "$FAKE_HC_LOG"
+printf '%s' "$FAKE_HC_STDOUT"
+printf '%s' "$FAKE_HC_STDERR" >&2
+exit "\${FAKE_HC_EXIT:-0}"`,
 );
-chmodSync(join(fakeBin, 'hc'), 0o755);
-afterAll(() => rmSync(fakeBin, { recursive: true, force: true }));
+// `hch version` finds the tab's build from the shell's parent process: `ps` names it, `lsof` gives its
+// executable, and that executable, a fake holder, reports $FAKE_TAB.
+fake(fakeBin, 'ps', 'echo 1');
+fake(fakeBin, 'lsof', `echo "n${join(fakeBin, 'holder')}"`);
+fake(fakeBin, 'holder', 'echo "herdr-core $FAKE_TAB"');
+
+// A fake `herdr-app`, in its own folder so a test can leave it off PATH, that logs its
+// arguments to $FAKE_APP_LOG, prints $FAKE_APP_STDOUT and exits $FAKE_APP_EXIT.
+const fakeAppBin = mkdtempSync(join(tmpdir(), 'hch-test-app-'));
+writeFileSync(
+  join(fakeAppBin, 'herdr-app'),
+  `#!/bin/sh\necho "$*" >> "$FAKE_APP_LOG"\nprintf '%s' "$FAKE_APP_STDOUT"\nexit "\${FAKE_APP_EXIT:-0}"\n`,
+);
+chmodSync(join(fakeAppBin, 'herdr-app'), 0o755);
+const appLog = join(fakeAppBin, 'log');
+afterAll(() => {
+  rmSync(fakeBin, { recursive: true, force: true });
+  rmSync(fakeAppBin, { recursive: true, force: true });
+});
 
 type Hc = { stdout?: string; stderr?: string; exit?: number };
+type App = { stdout?: string; exit?: number };
+type Versions = { tab?: string; installed?: string };
 
-function hch(args: string[], { terminal, hc = {} }: { terminal?: string; hc?: Hc } = {}) {
+/** Runs hch with only the fakes and the system folders on PATH, so the real hc and herdr-app are never reached. */
+function hch(
+  args: string[],
+  { terminal, hc = {}, app, versions = {} }: { terminal?: string; hc?: Hc; app?: App; versions?: Versions } = {},
+) {
+  rmSync(appLog, { force: true });
+  rmSync(hcLog, { force: true });
   const env: Record<string, string> = {
-    PATH: `${fakeBin}:${process.env.PATH}`,
+    PATH: [fakeBin, ...(app ? [fakeAppBin] : []), '/usr/bin', '/bin'].join(':'),
     FAKE_HC_STDOUT: hc.stdout ?? '',
     FAKE_HC_STDERR: hc.stderr ?? '',
     FAKE_HC_EXIT: String(hc.exit ?? 0),
+    FAKE_APP_STDOUT: app?.stdout ?? '',
+    FAKE_APP_EXIT: String(app?.exit ?? 0),
+    FAKE_APP_LOG: appLog,
+    FAKE_HC_LOG: hcLog,
+    FAKE_TAB: versions.tab ?? '0.1.21',
+    FAKE_INSTALLED: versions.installed ?? '0.1.21',
   };
   if (terminal) env.HC_TERMINAL_ID = terminal;
   const p = Bun.spawnSync([process.execPath, join(import.meta.dir, 'cli.ts'), ...args], { env });
   return { exit: p.exitCode, stdout: p.stdout.toString(), stderr: p.stderr.toString() };
+}
+
+/** The `hc` calls the last run made, one line of arguments each. */
+async function hcCalls(): Promise<string[]> {
+  const log = Bun.file(hcLog);
+  return (await log.exists()) ? (await log.text()).trimEnd().split('\n') : [];
 }
 
 test('no command prints usage and exits 0', () => {
@@ -88,9 +136,9 @@ test('two format flags exit 2', () => {
 });
 
 test("a format the command doesn't support exits 2", () => {
-  const r = hch(['up', '--table']);
+  const r = hch(['update', '--table']);
   expect(r.exit).toBe(2);
-  expect(r.stderr).toStartWith("hch: up doesn't support --table");
+  expect(r.stderr).toStartWith("hch: update doesn't support --table");
   expect(r.stdout).toBe('');
 });
 
@@ -131,19 +179,107 @@ test('where --table prints a box table', () => {
 });
 
 // Satisfies both `hc get` and `hc run`, which the fake answers with the same stdout.
-const newTerminal = JSON.stringify({ address: 't20', pid: 1, cwd: '/', labels: {} });
+const newTerminal = JSON.stringify({ address: 't20', pid: 1, cwd: '/', labels: { 'herdr.space': 'sp1' } });
 
-test('up --json prints the old and new terminal ids', () => {
-  const r = hch(['up', '--json'], { terminal: 't9', hc: { stdout: newTerminal } });
+test('update --json prints the old and new terminal ids', () => {
+  const r = hch(['update', '--json', '--force', '-y'], { terminal: 't9', hc: { stdout: newTerminal } });
   expect(r.exit).toBe(0);
   expect(JSON.parse(r.stdout)).toEqual({ from: 't9', to: 't20' });
 });
 
-test('up --json prints nothing on stdout when hc fails', () => {
-  const r = hch(['up', '--json'], { terminal: 't9', hc: { stderr: '{"error":{"message":"boom"}}', exit: 3 } });
+test('update --json prints nothing on stdout when hc fails', () => {
+  const hc = { stderr: '{"error":{"message":"boom"}}', exit: 3 };
+  const r = hch(['update', '--json', '--force', '-y'], { terminal: 't9', hc });
   expect(r.exit).toBe(3);
   expect(r.stdout).toBe('');
   expect(r.stderr).toBe('hch: boom\n');
+});
+
+test('update focuses the new terminal in Herdr', async () => {
+  const r = hch(['update', '--force', '-y'], { terminal: 't9', hc: { stdout: newTerminal }, app: {} });
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toBe('herdr core 0.1.21, up to date\nhch update: t9 -> t20\n');
+  expect(r.stderr).toBe('');
+  expect(await Bun.file(appLog).text()).toBe('do pane.focus --terminal t20\n');
+});
+
+test("update still replaces the shell when Herdr can't focus, and says why", async () => {
+  const app = { stdout: '{"error": "cannot open the Herdr window"}', exit: 1 };
+  const r = hch(['update', '--force', '-y'], { terminal: 't9', hc: { stdout: newTerminal }, app });
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toBe('herdr core 0.1.21, up to date\nhch update: t9 -> t20\n');
+  expect(r.stderr).toBe("hch: couldn't focus t20 in Herdr: cannot open the Herdr window\n");
+});
+
+test("update without herdr-app doesn't try to focus", async () => {
+  const r = hch(['update', '--force', '-y'], { terminal: 't9', hc: { stdout: newTerminal } });
+  expect(r.exit).toBe(0);
+  expect(r.stderr).toBe('');
+  expect(await Bun.file(appLog).exists()).toBe(false);
+});
+
+test("update doesn't focus a terminal Herdr doesn't show", async () => {
+  const r = hch(['update', '--force', '-y'], { terminal: 't9', hc: { stdout: terminal }, app: {} });
+  expect(r.exit).toBe(0);
+  expect(r.stderr).toBe('');
+  expect(await Bun.file(appLog).exists()).toBe(false);
+});
+
+const outdated = { tab: '0.1.20', installed: '0.1.21' };
+
+test('update on an up-to-date tab says so and stops', async () => {
+  const r = hch(['update'], { terminal: 't9', hc: { stdout: newTerminal } });
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toBe('herdr core 0.1.21, up to date\n');
+  expect((await hcCalls()).filter(c => c.startsWith('run'))).toEqual([]);
+});
+
+test('update --json on an up-to-date tab prints the versions without needing --yes', () => {
+  const r = hch(['update', '--json'], { terminal: 't9', hc: { stdout: newTerminal } });
+  expect(r.exit).toBe(0);
+  expect(JSON.parse(r.stdout)).toEqual({ tab: '0.1.21', installed: '0.1.21', up_to_date: true, updated: false });
+});
+
+test('update on a tab newer than the installed build says so and stops', () => {
+  const r = hch(['update'], { terminal: 't9', hc: { stdout: newTerminal }, versions: { tab: '0.1.22' } });
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toBe('herdr core 0.1.22, 0.1.21 installed (older)\n');
+});
+
+test("update on an outdated tab needs --yes when it can't ask", async () => {
+  const r = hch(['update'], { terminal: 't9', hc: { stdout: newTerminal }, versions: outdated });
+  expect(r.exit).toBe(2);
+  expect(r.stderr).toBe("hch: update needs --yes when it can't ask\n");
+  expect(r.stdout).toBe('');
+  expect((await hcCalls()).filter(c => c.startsWith('run'))).toEqual([]);
+});
+
+test("update --force on a current tab needs --yes when it can't ask", () => {
+  const r = hch(['update', '--force', '--json'], { terminal: 't9', hc: { stdout: newTerminal } });
+  expect(r.exit).toBe(2);
+  expect(r.stderr).toBe("hch: update needs --yes when it can't ask\n");
+});
+
+test('update -y on an outdated tab replaces the shell through the version-printing wrapper', async () => {
+  const r = hch(['update', '-y'], { terminal: 't9', hc: { stdout: newTerminal }, versions: outdated });
+  expect(r.exit).toBe(0);
+  expect(r.stdout).toBe('herdr core 0.1.20, 0.1.21 installed: run hch update\nhch update: t9 -> t20\n');
+  const run = (await hcCalls()).find(c => c.startsWith('run'));
+  expect(run).toContain('-- /bin/sh -c');
+  expect(run).toContain('version; exec "${SHELL:-/bin/sh}" -l');
+  expect(await hcCalls()).toContain('kill t9');
+});
+
+test('update --force -y --json on a current tab prints the old and new ids', () => {
+  const r = hch(['update', '--force', '-y', '--json'], { terminal: 't9', hc: { stdout: newTerminal } });
+  expect(r.exit).toBe(0);
+  expect(JSON.parse(r.stdout)).toEqual({ from: 't9', to: 't20' });
+});
+
+test('up is no longer a command', () => {
+  const r = hch(['up']);
+  expect(r.exit).toBe(2);
+  expect(r.stderr).toStartWith("hch: unknown command 'up'");
 });
 
 test('completion zsh prints a script that registers _hch', () => {
@@ -195,6 +331,27 @@ test('a command rejects unexpected arguments', () => {
     expect(r.stderr).toStartWith("hch: unexpected argument 'extra'");
     expect(r.stdout).toBe('');
   }
+});
+
+test("another command's flags are unknown options", () => {
+  for (const flag of ['--force', '-y', '--yes']) {
+    const r = hch(['where', flag]);
+    expect(r.exit).toBe(2);
+    expect(r.stderr).toStartWith(`hch: unknown option '${flag}'`);
+    expect(r.stdout).toBe('');
+  }
+});
+
+test("completion offers update's flags", () => {
+  const out = hch(['completion', 'zsh']).stdout;
+  expect(out).toContain('--force[');
+  expect(out).toContain("'(-y --yes)'{-y,--yes}");
+});
+
+test("usage lists update's flags", () => {
+  const out = hch(['help']).stdout;
+  expect(out).toContain('--force');
+  expect(out).toContain('-y, --yes');
 });
 
 test('help ignores extra arguments', () => {
