@@ -1,6 +1,5 @@
 {
   "name": "hch",
-  "module": "index.ts",
   "type": "module",
   "private": true,
   "devDependencies": {
@@ -8,5 +7,12 @@
   },
   "peerDependencies": {
     "typescript": "^7"
+  },
+  "bin": {
+    "hch": "./src/cli.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
   }
 }
