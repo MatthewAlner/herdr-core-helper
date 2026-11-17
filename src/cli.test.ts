@@ -77,3 +77,33 @@ test('where formats the terminal hc returns', () => {
   expect(r.exit).toBe(0);
   expect(r.stdout).toBe('space: s  \ntab:   2  \npane:  t9\n');
 });
+
+const terminal = JSON.stringify({ address: 't9', pid: 1, cwd: '/', labels: { where: 's / 2' } });
+
+test('two format flags exit 2', () => {
+  const r = hch(['where', '--json', '--table']);
+  expect(r.exit).toBe(2);
+  expect(r.stderr).toStartWith('hch: choose one of --json, --table, --markdown');
+  expect(r.stdout).toBe('');
+});
+
+test("a format the command doesn't support exits 2", () => {
+  const r = hch(['up', '--table']);
+  expect(r.exit).toBe(2);
+  expect(r.stderr).toStartWith("hch: up doesn't support --table");
+  expect(r.stdout).toBe('');
+});
+
+test('a format flag on help or no command exits 2', () => {
+  for (const args of [['help', '--json'], ['--json'], ['-h', '--markdown']]) {
+    const r = hch(args);
+    expect(r.exit).toBe(2);
+    expect(r.stderr).toStartWith('hch: help doesn');
+    expect(r.stdout).toBe('');
+  }
+});
+
+test('a format flag before the command works', () => {
+  const r = hch(['--json', 'where'], { terminal: 't9', hc: { stdout: terminal } });
+  expect(r.exit).toBe(0);
+});

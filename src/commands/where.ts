@@ -1,4 +1,5 @@
 import { getTerminal, requireTerminalId, type Terminal } from '../hc.ts';
+import type { Format } from '../output.ts';
 
 export function formatWhere(t: Terminal): string {
   const [space, tab] = (t.labels.where ?? '').split(' / ');
@@ -9,6 +10,6 @@ export function formatWhere(t: Terminal): string {
   ].join('\n');
 }
 
-export async function where(): Promise<void> {
+export async function where(format: Format): Promise<void> {
   console.log(formatWhere(await getTerminal(requireTerminalId())));
 }

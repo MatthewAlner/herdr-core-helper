@@ -1,5 +1,6 @@
 import { realpathSync } from 'node:fs';
 import { getTerminal, HchError, killTerminal, requireTerminalId, runTerminal } from '../hc.ts';
+import type { Format } from '../output.ts';
 
 /** One `--label=k=v` per label, minus `herdr.seen` so the new terminal starts unseen. */
 export function labelArgs(labels: Record<string, string>): string[] {
@@ -23,7 +24,7 @@ export function shellCwd(pwd = process.env.PWD, cwd = process.cwd()): string {
 }
 
 /** Replace this terminal's shell with a fresh one in the same tab and cwd, then end this one. */
-export async function up(): Promise<void> {
+export async function up(format: Format): Promise<void> {
   const id = requireTerminalId();
   const t = await getTerminal(id);
   const next = parseRunAddress(await runTerminal(['--cwd', shellCwd(), ...labelArgs(t.labels)]));

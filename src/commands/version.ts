@@ -2,6 +2,7 @@ import { $ } from 'bun';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { getTerminal, HchError, requireTerminalId } from '../hc.ts';
+import type { Format } from '../output.ts';
 
 /** `hc 0.1.21` → `0.1.21` */
 export function parseVersion(output: string): string {
@@ -23,7 +24,7 @@ async function holderExecutable(shellPid: number): Promise<string> {
   throw new HchError(`couldn't find the executable of process ${holder}`);
 }
 
-export async function version(): Promise<void> {
+export async function version(format: Format): Promise<void> {
   const t = await getTerminal(requireTerminalId());
   const exe = await holderExecutable(t.pid);
   const tab = parseVersion(await $`${exe} --version`.text());
