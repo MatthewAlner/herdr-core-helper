@@ -24,6 +24,9 @@ pane:  t14
 
 $ hch version
 tab: 0.1.20  installed: 0.1.21
+
+$ hch up
+hch up: t14 -> t15
 ```
 
 For tables or JSON instead, see [Output formats](#output-formats).
@@ -70,6 +73,27 @@ $ hch where --json
   "pane": "t14"
 }
 
+$ hch version --table
+┌───────────┬─────────┐
+│           │ Version │
+├───────────┼─────────┤
+│ Tab       │ 0.1.20  │
+├───────────┼─────────┤
+│ Installed │ 0.1.21  │
+└───────────┴─────────┘
+
+$ hch version --markdown
+|           | Version |
+| --------- | ------- |
+| Tab       | 0.1.20  |
+| Installed | 0.1.21  |
+
+$ hch version --json
+{
+  "tab": "0.1.20",
+  "installed": "0.1.21"
+}
+
 $ hch up --json
 {
   "from": "t14",
@@ -99,7 +123,22 @@ For tab completion in zsh, add this to your `.zshrc`, after `compinit` runs:
 source <(hch completion zsh)
 ```
 
-It completes commands and each command's format flags.
+It completes commands and each command's format flags:
+
+```console
+$ hch <TAB>
+completion  -- print a shell completion script (zsh)
+help        -- show this help
+up          -- replace this tab's shell with a fresh one on the installed herdr core
+version     -- show the herdr core build this tab runs, and the installed one
+where       -- show the space, tab and pane this terminal is in
+
+$ hch where -<TAB>
+--help      -h  -- show help
+--json          -- print JSON
+--markdown      -- print a Markdown table
+--table         -- print a table
+```
 
 ## Develop
 
