@@ -27,3 +27,12 @@ export function requireTerminalId(env: Record<string, string | undefined> = proc
 export async function getTerminal(id: string): Promise<Terminal> {
   return await $`hc get ${id} --json`.quiet().json();
 }
+
+/** Start a kept, parentless background terminal; returns `hc run`'s JSON. */
+export async function runTerminal(args: string[]): Promise<unknown> {
+  return await $`hc run --bg --no-parent --keep --json ${args}`.quiet().json();
+}
+
+export async function killTerminal(id: string): Promise<void> {
+  await $`hc kill ${id}`.quiet();
+}

@@ -2,6 +2,7 @@
 import { $ } from "bun";
 import { parseArgs } from "node:util";
 import { HchError } from "./hc.ts";
+import { up } from "./commands/up.ts";
 import { version } from "./commands/version.ts";
 import { where } from "./commands/where.ts";
 
@@ -12,9 +13,10 @@ Usage: hch <command>
 Commands
   where     show the space, tab and pane this terminal is in
   version   show the herdr core build this tab runs, and the installed one
+  up        replace this tab's shell with a fresh one on the installed herdr core
   help      show this help`;
 
-const commands: Record<string, () => Promise<void>> = { where, version };
+const commands: Record<string, () => Promise<void>> = { where, version, up };
 
 async function main(argv: string[]): Promise<number> {
   const { positionals, values } = parseArgs({
